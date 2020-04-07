@@ -13,17 +13,73 @@ var jsonParser = bodyParser.json();
 
 
 
-//get todos route
+//get todos route to todoList db
+
 app.get('/todos', (req, res) => {
-    let todo = req.query.todo;
-    res.send('The todo is: ' + todo);
+    MongoClient.connect(url, {useUnifiedTopology: true}, (err, client) => {
+        console.log('connected to mongo DB woo!');
+        let db = client.db('todoList'); //the dbname here
+
+        //call our db function and pass in an anon function
+        getDataFromDb(db, (documentsReturned) => {
+            res.json(documentsReturned);
+        })
+    });
 });
+
+var getDataFromDb = (db, callback) => {
+    var collection = db.collection('todos');  //the collection name here
+
+    //want to find a specific object, if you put nothing it will grab them all
+    //here is where you perfrom the CRUD operation
+    collection.find({}).toArray((err, docs) => {
+        console.log('found the following todos');
+        callback(docs);
+    });
+}
+//turn to an array so you can get access to it toArray takes two params one is error message one is the callback docs
+//stuff from toArray gets passed inisde of docs
+
+
 
 //add todos route
 app.post('/todos', jsonParser, (req, res) => {
-    let newTodo = req.body.newTodo;
-    res.send('New todo is ' + newTodo);
+    //create a new object to go in the db
+    const newTodo = {
+        todo: req.body.todo
+    }
+
+    MongoClient.connect(url, {useNewUrlParser: true, useUnifiedTopology: true}, (err, client) => {
+        console.log('Connected correctly to MongoDb')
+        //choose which db we want to access
+        let db = client.db('todoList')
+
+        //run a function that adds data to db
+        let result = insertNewTodo(db, newTodo, (docs) => {
+            if(docs.insertedCount === 1){
+                res.send('Successfully added todo: ')
+            } else {
+                res.send('Unable to add new todo')
+            }
+            client.close()
+        })
+
+    })
+
 });
+
+//define the insert todo function here
+var insertNewTodo = (db, newTodoToSend, callback) => {
+    //choose which collection to access
+    var collection = db.collection('todos');
+    //insert json object into the collection- newTodo
+    collection.insertOne(newTodoToSend, (err, docs) => {
+        callback(docs);
+    });
+};
+
+
+
 
 
 // //edit todos route
@@ -36,41 +92,8 @@ app.put('/todos', jsonParser, (req, res) => {
 // //delete todos route
 app.delete('/todos', jsonParser, (req, res) => {
     let id = req.body.id;
-    res.send('Todo id is ' + id);
+    res.send('Todo deleted is ' + id);
 });
 
-
-
-
-//route to db
-//third param is callback function lets you handle the db error and client itself the client is the db
-//client is the object that has all the dbs inside of it
-app.get('/users', (req, res) => {
-    MongoClient.connect(url, {useUnifiedTopology: true}, (err, client) => {
-        console.log('connected to mongo DB woo!');
-        let db = client.db('hippos'); //dbname the collection name
-
-        //querying the db the equivalent of SQL
-        //call our db function and pass in an anon function
-        getDataFromDb(db, (documentsReturned) => {
-            res.json(documentsReturned);
-        })
-    });
-});
-
-var getDataFromDb = (db, callback) => {
-    var collection = db.collection('users');
-
-    //want to find a specific object, if you put nothing it will grab them all
-    //here is where you perfrom the CRUD operation
-    collection.find({}).toArray((err, docs) => {
-        console.log('found the following records');
-        callback(docs);
-    });
-}
-
-
-//turn to an array so you can get access to it toArray takes two params one is error message one is the callback docs
-//stuff from toArray gets passed inisde of docs
 
 app.listen(port, () => console.log(`MongoDB app listening at http://localhost:${port}`));
