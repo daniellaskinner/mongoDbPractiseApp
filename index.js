@@ -13,8 +13,7 @@ var jsonParser = bodyParser.json();
 
 
 
-//get todos route to todoList db
-
+//GET ALL TODOS FROM THE TODOLIST MONGO DB
 app.get('/todos', (req, res) => {
     MongoClient.connect(url, {useUnifiedTopology: true}, (err, client) => {
         console.log('connected to mongo DB woo!');
@@ -42,7 +41,7 @@ var getDataFromDb = (db, callback) => {
 
 
 
-//add todos route
+//ADD TODO ROUTE
 app.post('/todos', jsonParser, (req, res) => {
     //create a new object to go in the db
     const newTodo = {
@@ -57,7 +56,7 @@ app.post('/todos', jsonParser, (req, res) => {
         //run a function that adds data to db
         let result = insertNewTodo(db, newTodo, (docs) => {
             if(docs.insertedCount === 1){
-                res.send('Successfully added todo: ')
+                res.send('Successfully added todo: ' + newTodo.todo)
             } else {
                 res.send('Unable to add new todo')
             }
@@ -81,15 +80,14 @@ var insertNewTodo = (db, newTodoToSend, callback) => {
 
 
 
-
-// //edit todos route
+//EDIT TODO ROUTE
 app.put('/todos', jsonParser, (req, res) => {
     let id = req.body.id;
     res.send('Todo id is ' + id);
 });
 
 
-// //delete todos route
+//DELETE TODO ROUTE
 app.delete('/todos', jsonParser, (req, res) => {
     let id = req.body.id;
     res.send('Todo deleted is ' + id);
